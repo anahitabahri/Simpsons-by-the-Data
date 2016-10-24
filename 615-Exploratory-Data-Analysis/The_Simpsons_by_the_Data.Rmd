@@ -120,12 +120,10 @@ sum(is.na(lines))
 
 ```
 
-<b>New dataframe names: characters, episodes, locations, lines</b>
-<br>
 
-### Explore the data!
+## Explore Data
 
-Join the datasets
+### Join the Datasets
 ```{r}
 colnames(lines) # we care about character_id
 colnames(characters) # we care about id
@@ -153,7 +151,7 @@ class(simpsons_data$imdb_rating)
 ```
 
 
-#### Plots!
+### Create Plots
 
 The Simpsons Top 10 Characters by Number of Spoken Words
 ```{r}
@@ -258,3 +256,4 @@ lm(simpsons_data$imdb_rating ~ simpsons_data$original_air_date)
 
 ```
 
+Next steps: word plots for top 10 characters (possibly incorporate rsentiment package), avg imdb rating per season with layer on us viewers in millions (need to transform to stay on same axis), how many times does homer say "Doh!"?, wordcount per episode (or season) over time for non-simpson family characters, % of show's total dialogue by season for simpsons fam, where do the top 10 characters speak most (split by character), who is usually the first to talk in the episode? 
