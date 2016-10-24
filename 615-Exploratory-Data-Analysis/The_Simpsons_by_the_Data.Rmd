@@ -169,6 +169,7 @@ simpsons_data %>%
   labs(x = "Character", y = "Total Word Count") +
   ggtitle("The Simpsons Top 10 Characters by Number of Spoken Words") +
   theme_minimal()
+ggsave("charts/Top10Characters.png",dpi = 500)
 
 ```
 
@@ -193,6 +194,7 @@ ggplot(words_by_character[1:15, ], aes(raw_character_text, sum_word_count, fill 
   ggtitle("The Simpsons Top 15 Characters by Number of Spoken Words")+
   labs(x = "Character", y = "Total Word Count") +
   theme_minimal()
+ggsave("charts/Top15Characters_Gender.png",dpi = 500)
 
 ```
 
@@ -204,6 +206,7 @@ ggplot(words_by_character[1:20, ], aes(raw_character_text, sum_word_count, fill 
   ggtitle("The Simpsons Top 20 Characters by Number of Spoken Words")+
   labs(x = "Character", y = "Total Word Count") +
   theme_minimal()
+ggsave("charts/Top20Characters_Gender.png",dpi = 500)
 
 ```
 
@@ -223,6 +226,7 @@ ggplot(words_by_location[1:5, ], aes(raw_location_text, sum_word_count)) +
   ggtitle("The Top 5 Locations by Number of Spoken Words")+
   labs(x = "Location", y = "Total Word Count") +
   theme_minimal()
+ggsave("charts/Top5Locations.png",dpi = 500)
 
 ```
 
@@ -234,6 +238,7 @@ ggplot(simpsons_data, aes(original_air_date,us_viewers_in_millions)) +
   geom_smooth(color="black") +
   ggtitle("The Simpsons TV Viewers by episode") +
   labs(x = "Original Air Date", y = "US Viewers in Millions")
+ggsave("charts/ViewersByEpisode.png",dpi = 500)
 
 # viewership has gone down substantialy over the years. how about episode ratings over the years?
 
@@ -249,6 +254,7 @@ ggplot(simpsons_data, aes(original_air_date,imdb_rating)) +
   geom_smooth(color="black") +
   ggtitle("The Simpsons TV ratings by episode") +
   labs(x = "Original Air Date", y = "IMDB Rating")
+ggsave("charts/RatingsByEpisode.png",dpi = 500)
 
 # ratings have also gone down slightly over the years, but not as drastically as viewers. why may this be the case? the rise of tv streaming! 
 
