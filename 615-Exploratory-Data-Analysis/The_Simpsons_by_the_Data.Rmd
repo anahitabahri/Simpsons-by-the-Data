@@ -1,0 +1,260 @@
+---
+title: "The Simpsons by the Data"
+author: "Anahita Bahri"
+date: "October 23, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load relevant libraries
+```{r}
+library(tidyr) # tidy data
+library(dplyr) # data manipulation
+library(readr) # read files
+library(ggplot2) # data viz!
+library(ggthemes) # data viz!
+library(sqldf) # incorporate sql queries when dplyr doesn't work out
+```
+
+Read data in
+```{r}
+characters <- read_csv("data/simpsons_characters.csv")
+episodes <- read_csv("data/simpsons_episodes.csv")
+locations <- read_csv("data/simpsons_locations.csv")
+lines <- read_csv("data/simpsons_script_lines.csv")
+```
+
+### Description of the datasets
+Overall, these datasets contain the characters, locations, episode details, and script lines for approximately 600 Simpsons episodes, dating back to 1989. You can find this data on Kaggle. [link](https://www.kaggle.com/wcukierski/the-simpsons-by-the-data)
+<br>
+<br>
+<b>characters:</b> a dataset with 323 character information with their relevant character id, gender, and 2 versions of their name (name, normalized name).
+```{r}
+
+head(episodes)
+nrow(characters)
+length(unique(characters$id)) # no duplicates
+
+```
+
+<b>episodes:</b> a dataset containing metadata for all 600 episodes, including id, title, air date, season, # of viewers in the us in millions, imdb rating, among others.
+```{r}
+
+head(episodes)
+nrow(episodes)
+length(unique(episodes$id)) # each episode id is only listed once in the id col, it isn't displayed in "logged style".
+
+```
+
+<b>locations:</b> a dataset with 3144 locations names (both name and normalized name) and their relevant ids. 
+```{r}
+
+head(locations)
+nrow(locations)
+length(unique(locations$id)) # no duplicates
+
+```
+
+<b>lines:</b> a dataset containing the text spoken (157,462 unique lines) during 564 episodes (of 600 episodes), including details about which character said it and where it was said. 
+```{r}
+
+head(lines)
+length(unique(lines$episode_id))
+length(unique(lines$id))
+colnames(lines)
+
+```
+
+
+### Clean and manipulate the data!
+<i>Initially, I had removed multiple NAs, which led me to some strange charts. One chart showed that Lisa Simpson talked over twice as much as the rest of her family did. This didn't seem right, as I would've thought that Homer Simpson would've spoken the most. After keeping all the NAs, I got the "correct" results.</i>
+<br>
+<br>
+Character data
+```{r}
+head(characters)
+# we only need id, name, gender, but we can leave it as is for now
+# check for NAs
+sum(is.na(characters))
+# no NAs! 
+```
+
+Episode data
+```{r}
+colnames(episodes)
+# don't need production code, image url, video url, can do the following, if needed, but i will continue with regular episodes dataset
+# updated_episodes <- select(simpsons_episodes,id,title,original_air_date,season,number_in_season,number_in_series,us_viewers_in_millions,views,imdb_rating,imdb_votes) 
+
+
+# how many NAs do we have? 
+sum(is.na(episodes))
+sum(is.na(episodes$us_viewers_in_millions))
+sum(is.na(episodes$views))
+sum(is.na(episodes$imdb_rating))
+sum(is.na(episodes$imdb_votes))
+# we don't have many NA vals, we can keep them instead of removing them completely, that way we don't throw away potentially relevant data
+
+```
+
+Location data
+```{r}
+# check for NAs
+sum(is.na(locations))
+# no NAs! 
+head(locations)
+# we could remove either name or normalized_name, but we can keep it as is for now. 
+```
+
+Lines data
+```{r}
+colnames(lines)
+# we don't need raw text, timestamp, speaking line, or spoken word, but let's leave as is for now, we can compute the following if needed
+
+# lines1 <- select(simpsons_lines,id,episode_id,number,character_id,location_id,raw_character_text,raw_location_text,normalized_text,word_count)
+
+sum(is.na(lines))
+# lots of NAs... but let's leave it as is. we may throw away important data otherwise. 
+
+```
+
+<b>New dataframe names: characters, episodes, locations, lines</b>
+<br>
+
+### Explore the data!
+
+Join the datasets
+```{r}
+colnames(lines) # we care about character_id
+colnames(characters) # we care about id
+
+# using dplyr's left_join, join all the datasets! 
+simpsons_data <- left_join(lines, locations, by = c("location_id" = "id"))
+simpsons_data <- left_join(simpsons_data, episodes, by = c("episode_id" = "id"))
+simpsons_data <- left_join(simpsons_data, characters, by = c("character_id" = "id"))
+
+colnames(simpsons_data)
+
+# there are way too many cols here. let's trim it down to a select few. 
+
+simpsons_data <- select(simpsons_data, id, episode_id, number, timestamp_in_ms, speaking_line, raw_character_text, raw_location_text, normalized_text, word_count, title, original_air_date, season, number_in_season, number_in_series, us_viewers_in_millions, views, imdb_rating, gender)
+
+class(simpsons_data$word_count)
+# need to change data type of word count to numeric
+simpsons_data$word_count <- as.numeric(simpsons_data$word_count)
+
+# check other relevant data types
+class(simpsons_data$us_viewers_in_millions)
+class(simpsons_data$views)
+class(simpsons_data$imdb_rating)
+
+```
+
+
+#### Plots!
+
+The Simpsons Top 10 Characters by Number of Spoken Words
+```{r}
+
+# use dplyr to get sum(word_count) and distinct(episode_id) grouped by characters
+simpsons_data %>%
+  filter(speaking_line == "true") %>%
+  group_by(raw_character_text) %>%
+  summarise(word_count = sum(word_count, na.rm = TRUE),
+            ep_count = n_distinct(episode_id)) %>%
+  top_n(n = 10, wt = word_count) %>%
+  ggplot +
+  geom_bar(aes(raw_character_text, word_count), stat = "identity") +
+  coord_flip() +
+  labs(x = "Character", y = "Total Word Count") +
+  ggtitle("The Simpsons Top 10 Characters by Number of Spoken Words") +
+  theme_minimal()
+
+```
+
+Fill by gender, get top 15 instead
+```{r}
+# use sqldf to also get sum(word_count), distinct(episode_id), gender (not NA), grouped by characters
+
+words_by_character <- sqldf("SELECT raw_character_text, gender, SUM(word_count) as sum_word_count, COUNT(DISTINCT episode_id) AS episode_count
+  FROM simpsons_data
+  WHERE gender IS NOT \"NA\"
+  GROUP BY raw_character_text
+  ORDER BY 3 DESC, raw_character_text")
+
+```
+
+Top 15 Characters by Number of Spoken Words: only 2 female characters are in the top 15
+```{r}
+
+ggplot(words_by_character[1:15, ], aes(raw_character_text, sum_word_count, fill = gender)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  ggtitle("The Simpsons Top 15 Characters by Number of Spoken Words")+
+  labs(x = "Character", y = "Total Word Count") +
+  theme_minimal()
+
+```
+
+Top 20 Characters by Number of Spoken Words: only 3 female characters are in the top 20
+```{r}
+ggplot(words_by_character[1:20, ], aes(raw_character_text, sum_word_count, fill = gender)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  ggtitle("The Simpsons Top 20 Characters by Number of Spoken Words")+
+  labs(x = "Character", y = "Total Word Count") +
+  theme_minimal()
+
+```
+
+The Locations with the Most Dialogue
+```{r}
+# use sqldf to group a dataframe similar to words_by_character by raw_location_text
+
+words_by_location <- sqldf("SELECT raw_character_text, gender, SUM(word_count) as sum_word_count, COUNT(DISTINCT episode_id) AS episode_count, raw_location_text
+  FROM simpsons_data
+  WHERE gender IS NOT \"NA\"
+  GROUP BY raw_location_text
+  ORDER BY 3 DESC, raw_location_text")
+
+ggplot(words_by_location[1:5, ], aes(raw_location_text, sum_word_count)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  ggtitle("The Top 5 Locations by Number of Spoken Words")+
+  labs(x = "Location", y = "Total Word Count") +
+  theme_minimal()
+
+```
+
+The Simpsons Viewers by Episode
+```{r}
+
+ggplot(simpsons_data, aes(original_air_date,us_viewers_in_millions)) +
+  geom_point(color="#E77471",alpha=0.1) +
+  geom_smooth(color="black") +
+  ggtitle("The Simpsons TV Viewers by episode") +
+  labs(x = "Original Air Date", y = "US Viewers in Millions")
+
+# viewership has gone down substantialy over the years. how about episode ratings over the years?
+
+lm(simpsons_data$us_viewers_in_millions ~ simpsons_data$original_air_date)
+
+```
+
+The Simpsons Ratings by Episode
+```{r}
+
+ggplot(simpsons_data, aes(original_air_date,imdb_rating)) +
+  geom_point(color="#E77471",alpha=0.1) +
+  geom_smooth(color="black") +
+  ggtitle("The Simpsons TV ratings by episode") +
+  labs(x = "Original Air Date", y = "IMDB Rating")
+
+# ratings have also gone down slightly over the years, but not as drastically as viewers. why may this be the case? the rise of tv streaming! 
+
+lm(simpsons_data$imdb_rating ~ simpsons_data$original_air_date)
+
+```
+
