@@ -28,7 +28,7 @@ lines <- read_csv("data/simpsons_script_lines.csv")
 ```
 
 ### Description of the datasets
-Overall, these datasets contain the characters, locations, episode details, and script lines for approximately 600 Simpsons episodes, dating back to 1989. You can find this data on [Kaggle](https://www.kaggle.com/wcukierski/the-simpsons-by-the-data).
+Overall, these datasets contain the characters, locations, episode details, and script lines for approximately 600 Simpsons episodes, dating back to 1989. You can find this data on Kaggle. [link](https://www.kaggle.com/wcukierski/the-simpsons-by-the-data)
 <br>
 <br>
 <b>characters:</b> a dataset with 323 character information with their relevant character id, gender, and 2 versions of their name (name, normalized name).
