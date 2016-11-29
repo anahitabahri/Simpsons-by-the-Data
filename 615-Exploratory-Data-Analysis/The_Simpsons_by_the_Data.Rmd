@@ -6,33 +6,40 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, comment = FALSE)
 ```
 
 Load relevant libraries
-```{r}
+```{r, warning=FALSE, comment=FALSE, message=FALSE}
 library(tidyr) # tidy data
 library(dplyr) # data manipulation
 library(readr) # read files
 library(ggplot2) # data viz!
 library(ggthemes) # data viz!
 library(sqldf) # incorporate sql queries when dplyr doesn't work out
+options(scipen=999) 
 ```
 
 Read data in
-```{r}
+```{r, warning=FALSE, comment=FALSE, message=FALSE}
 characters <- read_csv("data/simpsons_characters.csv")
 episodes <- read_csv("data/simpsons_episodes.csv")
 locations <- read_csv("data/simpsons_locations.csv")
 lines <- read_csv("data/simpsons_script_lines.csv")
 ```
 
+## Why did I choose this data?  
+As a superfan of all things entertainment, I thought it would be interesting to explore something beyond what I'm used to (music). I've always enjoyed TV shows like The Simpsons, and more recently, Family Guy and Bob's Burgers, so once I saw this data on Kaggle, I knew I had to dig in!  
+  
+There are many things to explore after cleaning and preparing the data at hand, like how viewership and ratings have performed over the years. I'd also like to explore how gender comes into play in terms the number of speaking lines, or even words. I have many other ideas, but I'm sure I won't be able to get to all of them by the end of this report.    
+  
+  
 ### Description of the datasets
 Overall, these datasets contain the characters, locations, episode details, and script lines for approximately 600 Simpsons episodes, dating back to 1989. You can find this data on [Kaggle](https://www.kaggle.com/wcukierski/the-simpsons-by-the-data).
 <br>
 <br>
-<b>characters:</b> a dataset with 323 character information with their relevant character id, gender, and 2 versions of their name (name, normalized name).
-```{r}
+<b>characters:</b> a dataset with information on 323 characters, including their relevant character id, gender, and 2 versions of their name (name, normalized name).
+```{r, warning=FALSE, comment=FALSE}
 
 head(episodes)
 nrow(characters)
@@ -40,17 +47,18 @@ length(unique(characters$id)) # no duplicates
 
 ```
 
-<b>episodes:</b> a dataset containing metadata for all 600 episodes, including id, title, air date, season, # of viewers in the us in millions, imdb rating, among others.
-```{r}
+<b>episodes:</b> a dataset containing metadata for 600 episodes, including id, title, air date, season, number (in millions) of viewers in the US, IMDb rating, among others.
+```{r, warning=FALSE, comment=FALSE}
 
 head(episodes)
 nrow(episodes)
-length(unique(episodes$id)) # each episode id is only listed once in the id col, it isn't displayed in "logged style".
+length(unique(episodes$id)) 
+# Each episode id is only listed once in the id column, it isn't displayed in "logged style".
 
 ```
 
 <b>locations:</b> a dataset with 3144 locations names (both name and normalized name) and their relevant ids. 
-```{r}
+```{r, warning=FALSE, comment=FALSE}
 
 head(locations)
 nrow(locations)
@@ -58,8 +66,8 @@ length(unique(locations$id)) # no duplicates
 
 ```
 
-<b>lines:</b> a dataset containing the text spoken (157,462 unique lines) during 564 episodes (of 600 episodes), including details about which character said it and where it was said. 
-```{r}
+<b>lines:</b> a dataset containing the text spoken (157,462 unique lines) during 564 episodes (of 600 episodes), including details about which character said it, in addition to when and where it was said. 
+```{r, warning=FALSE, comment=FALSE}
 
 head(lines)
 length(unique(lines$episode_id))
@@ -68,85 +76,84 @@ colnames(lines)
 
 ```
 
-
-### Clean and manipulate the data!
-<i>Initially, I had removed multiple NAs, which led me to some strange charts. One chart showed that Lisa Simpson talked over twice as much as the rest of her family did. This didn't seem right, as I would've thought that Homer Simpson would've spoken the most. After keeping all the NAs, I got the "correct" results.</i>
-<br>
-<br>
+## Explore Data  
+  
+In this section, I'll be exploring the data. I'll look at how to deal with null values, joining the various datasets, manipulating some data (if applicable), and visually representing the data that could lead to "aha" moments for next steps in analysis.  
+  
+<i>Initially, I had removed multiple NAs, which led me to some strange charts. One chart showed that Lisa Simpson talked over twice as much as the rest of her family did. As someone who has watched the show, I knew this didn't seem right. I thought that Homer Simpson would've spoken the most. After keeping all the NAs, I got the "correct" results.</i>  
+  
 Character data
-```{r}
+```{r, warning=FALSE, comment=FALSE}
 head(characters)
-# we only need id, name, gender, but we can leave it as is for now
-# check for NAs
+# We only need id, name, gender, but we can leave it as is for now.
+# Check for NAs:
 sum(is.na(characters))
-# no NAs! 
+# No NAs! 
 ```
-
+  
 Episode data
-```{r}
+```{r, warning=FALSE, comment=FALSE}
 colnames(episodes)
-# don't need production code, image url, video url, can do the following, if needed, but i will continue with regular episodes dataset
+# We don't need production code, image url, video url, but I will continue with the regular episodes dataset. Feel free to use the following code that's commented out if you'd like to create a subset with particular columns.
+
 # updated_episodes <- select(simpsons_episodes,id,title,original_air_date,season,number_in_season,number_in_series,us_viewers_in_millions,views,imdb_rating,imdb_votes) 
 
-
-# how many NAs do we have? 
+# How many NA values do we have? 
 sum(is.na(episodes))
 sum(is.na(episodes$us_viewers_in_millions))
 sum(is.na(episodes$views))
 sum(is.na(episodes$imdb_rating))
 sum(is.na(episodes$imdb_votes))
-# we don't have many NA vals, we can keep them instead of removing them completely, that way we don't throw away potentially relevant data
+# We don't have many NA values, so we can keep them instead of removing them completely. This way, we won't throw away potentially relevant data.
 
 ```
-
+  
 Location data
-```{r}
-# check for NAs
+```{r, warning=FALSE, comment=FALSE}
+# Check for NAs
 sum(is.na(locations))
-# no NAs! 
+# No NAs! 
 head(locations)
-# we could remove either name or normalized_name, but we can keep it as is for now. 
+# Again, we could remove either name or normalized_name, but we can keep it as is for now. If you'd like to keep one or the other, you could use dplyr's select functionality to select the column's you desire to keep.
 ```
-
+  
 Lines data
-```{r}
+```{r, warning=FALSE, comment=FALSE}
 colnames(lines)
-# we don't need raw text, timestamp, speaking line, or spoken word, but let's leave as is for now, we can compute the following if needed
+# We don't need raw text, timestamp, speaking line, or spoken word, but, once again, I'd like to leave it as is for now. The code that's commented out below can be used to remove these columns.
 
 # lines1 <- select(simpsons_lines,id,episode_id,number,character_id,location_id,raw_character_text,raw_location_text,normalized_text,word_count)
 
 sum(is.na(lines))
-# lots of NAs... but let's leave it as is. we may throw away important data otherwise. 
+# There are lots of NA values, but we will keep it as is. As I mentioned, after removing some NA values, I got some strange charts. I believe that may have been the case thanks to removing some NA values in this particular dataset! 
 
 ```
-
-
-## Explore Data
-
+  
 ### Join the Datasets
-```{r}
-colnames(lines) # we care about character_id
-colnames(characters) # we care about id
+```{r, warning=FALSE, comment=FALSE}
+# What's in common in both in the lines and location datasets? Location ID!
+# For episodes and characters, it's Episode ID and Character ID, respectively, when compared to the lines dataset.  
+# If you look at the column names of each of the datasets, you'd notice that these IDs don't have the same name. For example, location ID in the lines dataset is "location_id", while it is "id" in the locations dataset. This is why a vector is created in the following dataset join code. If the column name was "location_id" in both datasets, I'd just need to say 'by = location_id', but that isn't the case here.  
 
-# using dplyr's left_join, join all the datasets! 
-simpsons_data <- left_join(lines, locations, by = c("location_id" = "id"))
+# using dplyr's left_join, we join all the datasets! 
+simpsons_data <- left_join(lines, locations, by = c("location_id" = "id")) 
 simpsons_data <- left_join(simpsons_data, episodes, by = c("episode_id" = "id"))
 simpsons_data <- left_join(simpsons_data, characters, by = c("character_id" = "id"))
 
 colnames(simpsons_data)
-
-# there are way too many cols here. let's trim it down to a select few. 
+# There are way too many columns here, thanks to not trimming it down before. A next step would be to select the relevant columns for analysis using dplyr. 
 
 simpsons_data <- select(simpsons_data, id, episode_id, number, timestamp_in_ms, speaking_line, raw_character_text, raw_location_text, normalized_text, word_count, title, original_air_date, season, number_in_season, number_in_series, us_viewers_in_millions, views, imdb_rating, gender)
 
 class(simpsons_data$word_count)
-# need to change data type of word count to numeric
+# I plan to do some analysis using word_count, which is currently a character. I need to change its data type to numeric to do any kind of analysis or even visualization. 
 simpsons_data$word_count <- as.numeric(simpsons_data$word_count)
 
-# check other relevant data types
+# Check other relevant data types I plan to do some analysis on. 
 class(simpsons_data$us_viewers_in_millions)
 class(simpsons_data$views)
 class(simpsons_data$imdb_rating)
+# All of these look good!
 
 ```
 
@@ -154,9 +161,10 @@ class(simpsons_data$imdb_rating)
 ### Create Plots
 
 The Simpsons Top 10 Characters by Number of Spoken Words
-```{r}
+```{r, warning=FALSE, comment=FALSE}
 
-# use dplyr to get sum(word_count) and distinct(episode_id) grouped by characters
+# Here I use dplyr to get the total word count and distinct episode ids grouped by characters, which, in turn is used to create a plot using ggplot2.  
+
 simpsons_data %>%
   filter(speaking_line == "true") %>%
   group_by(raw_character_text) %>%
@@ -169,24 +177,26 @@ simpsons_data %>%
   labs(x = "Character", y = "Total Word Count") +
   ggtitle("The Simpsons Top 10 Characters by Number of Spoken Words") +
   theme_minimal()
-ggsave("charts/Top10Characters.png",dpi = 500)
+# ggsave("charts/Top10Characters.png",dpi = 500)
 
 ```
-
-Fill by gender, get top 15 instead
-```{r}
-# use sqldf to also get sum(word_count), distinct(episode_id), gender (not NA), grouped by characters
+  
+Yikes! I notice that there aren't very many females in the top 10 characters in terms of total word count. As a next step, I'd like to fill the bars by gender so that the plot tells a better story visually. I'd also like to see whether there's a dramatic change if I look at the top 15 or 20 instead. 
+```{r, warning=FALSE, comment=FALSE}
+# SQLDF is a package that uses SQL syntax. I could do the following using dplyr, but here's a different way to subset the data at hand to get the total word count and total number of episodes grouped by the various characters.
 
 words_by_character <- sqldf("SELECT raw_character_text, gender, SUM(word_count) as sum_word_count, COUNT(DISTINCT episode_id) AS episode_count
   FROM simpsons_data
-  WHERE gender IS NOT \"NA\"
   GROUP BY raw_character_text
   ORDER BY 3 DESC, raw_character_text")
+
+# View(words_by_character) # There's an NA that I'd definitely like to remove. 
+words_by_character <- na.omit(words_by_character)
 
 ```
 
 Top 15 Characters by Number of Spoken Words: only 2 female characters are in the top 15
-```{r}
+```{r, warning=FALSE, comment=FALSE}
 
 ggplot(words_by_character[1:15, ], aes(raw_character_text, sum_word_count, fill = gender)) +
   geom_bar(stat = "identity") +
@@ -194,31 +204,33 @@ ggplot(words_by_character[1:15, ], aes(raw_character_text, sum_word_count, fill 
   ggtitle("The Simpsons Top 15 Characters by Number of Spoken Words")+
   labs(x = "Character", y = "Total Word Count") +
   theme_minimal()
-ggsave("charts/Top15Characters_Gender.png",dpi = 500)
+# ggsave("charts/Top15Characters_Gender.png",dpi = 500)
 
 ```
-
+  
+This is a much more appealing chart than the first. The gender imbalance on the show concerns me, but was expected in a way. There are most definitely more male "main" characters than female, all of whom I assumed would be in this top 15 chart. Let's see how the number of female characters changes when we expand this to top 20.  
+  
 Top 20 Characters by Number of Spoken Words: only 3 female characters are in the top 20
-```{r}
+```{r, warning=FALSE, comment=FALSE}
 ggplot(words_by_character[1:20, ], aes(raw_character_text, sum_word_count, fill = gender)) +
   geom_bar(stat = "identity") +
   coord_flip() +
   ggtitle("The Simpsons Top 20 Characters by Number of Spoken Words")+
   labs(x = "Character", y = "Total Word Count") +
   theme_minimal()
-ggsave("charts/Top20Characters_Gender.png",dpi = 500)
+# ggsave("charts/Top20Characters_Gender.png",dpi = 500)
 
 ```
-
+  
+No drastic change here. The only female character that has been added is Edna Flanders, who hasn't spoken much when compared to the Simpsons family. It may be interesting to take a look at the non-Simpsons family characters as a next step. First, however, let's take a look at the locations with the most dialogue. My prediction is that the Simpsons home will be the location with the highest word count. This prediction has been enhanced by seeing how much more the Simpsons family talks (particularly Homer!) than those who aren't in the family.  
+  
 The Locations with the Most Dialogue
-```{r}
-# use sqldf to group a dataframe similar to words_by_character by raw_location_text
-
+```{r, warning=FALSE, comment=FALSE}
+# Once again, we'll use SQLDF to group a dataframe similar to words_by_character, but by the location instead. 
 words_by_location <- sqldf("SELECT raw_character_text, gender, SUM(word_count) as sum_word_count, COUNT(DISTINCT episode_id) AS episode_count, raw_location_text
   FROM simpsons_data
-  WHERE gender IS NOT \"NA\"
   GROUP BY raw_location_text
-  ORDER BY 3 DESC, raw_location_text")
+  ORDER BY 3 DESC")
 
 ggplot(words_by_location[1:5, ], aes(raw_location_text, sum_word_count)) +
   geom_bar(stat = "identity") +
@@ -226,40 +238,57 @@ ggplot(words_by_location[1:5, ], aes(raw_location_text, sum_word_count)) +
   ggtitle("The Top 5 Locations by Number of Spoken Words")+
   labs(x = "Location", y = "Total Word Count") +
   theme_minimal()
-ggsave("charts/Top5Locations.png",dpi = 500)
+# ggsave("charts/Top5Locations.png",dpi = 500)
 
 ```
-
-The Simpsons Viewers by Episode
-```{r}
+  
+As expected, the Simpsons home is the location with the highest word count. Another interesting thing to explore could be how gender comes into play for these locations. Is there a particular location that is female skewed? If yes, is it something like the Kwik-E-Mart, which may be consdered somewhat sexist? Is Apu primarily the only male speaking there?   
+  
+As I discussed earlier on, I wanted to explore how viewership and ratings have done over the years. First let's take a look at viewers.  
+```{r, warning=FALSE, comment=FALSE}
 
 ggplot(simpsons_data, aes(original_air_date,us_viewers_in_millions)) +
   geom_point(color="#E77471",alpha=0.1) +
   geom_smooth(color="black") +
   ggtitle("The Simpsons TV Viewers by episode") +
   labs(x = "Original Air Date", y = "US Viewers in Millions")
-ggsave("charts/ViewersByEpisode.png",dpi = 500)
-
-# viewership has gone down substantialy over the years. how about episode ratings over the years?
+# ggsave("charts/ViewersByEpisode.png",dpi = 500)
 
 lm(simpsons_data$us_viewers_in_millions ~ simpsons_data$original_air_date)
 
 ```
-
-The Simpsons Ratings by Episode
-```{r}
+  
+Viewership has gone down substantialy over the years. There's a strange but interesting trend, though. What happened in the late 90's? Did something happen in TV? Perhaps something with Fox (the channel that broadcasts The Simpsons)? Also, something to note is that the viewers data is based on those watching via cable TV. This is why the more recent decline is expected, thanks to disruptive innovation: the rise of streaming TV! 
+  
+  
+How about episode ratings over the years?  
+```{r, warning=FALSE, comment=FALSE}
 
 ggplot(simpsons_data, aes(original_air_date,imdb_rating)) +
   geom_point(color="#E77471",alpha=0.1) +
   geom_smooth(color="black") +
   ggtitle("The Simpsons TV ratings by episode") +
   labs(x = "Original Air Date", y = "IMDB Rating")
-ggsave("charts/RatingsByEpisode.png",dpi = 500)
-
-# ratings have also gone down slightly over the years, but not as drastically as viewers. why may this be the case? the rise of tv streaming! 
+# ggsave("charts/RatingsByEpisode.png",dpi = 500)
 
 lm(simpsons_data$imdb_rating ~ simpsons_data$original_air_date)
 
 ```
-
-Next steps: word plots for top 10 characters (possibly incorporate rsentiment package), avg imdb rating per season with layer on us viewers in millions (need to transform to stay on same axis), how many times does homer say "Doh!"?, wordcount per episode (or season) over time for non-simpson family characters, % of show's total dialogue by season for simpsons fam, where do the top 10 characters speak most (split by character), who is usually the first to talk in the episode? 
+  
+Ratings have also gone down slightly over the years, but not as drastically as viewers. In fact, they were at an all-time high in the mid-90's, while the viewers had declined quite a bit by that time. We don't have the data on how many people rated the TV shows over the years, but if we could get our hands on that, it may have an alternative explanation for why ratings have changed over the years.  
+  
+  
+### Review and Next Steps  
+So far, we've learned that there's gender imbalance on the TV show. When looking at the 20 most prominent characters, only 3 are female. We've also learned that a lot of the talking on the show happens at the Simpsons home, as expected. Lastly, we've learned that both viewership and ratings have gone down over the years.  
+  
+There are many potential next steps. Here are a handful of them.
+- How does gender come into play when looking at the non-Simpsons family characters' total word count?  
+- How does gender come into play when looking at the various locations, particularly if there's a particular location that is female skewed?  
+- How has total word count changed over the seasons when it comes to gender?  
+- How has total word count per episode (or season) changed over time for non-Simpsons family characters?  
+- How has the % of the show's total dialogue for the Simpsons family changed over time?  
+- Where do the top 10 characters speak the most (split by character)?  
+- Construct word plots for the top 10 characters, possibly incorporating the rsentiment package.  
+- Who is usually the first to talk in the episode?  
+- What's the average IMDb rating per season with a layer on viewership in millions?  
+- How many times does Homer say 'D'oh!' and how does it change over time? Where does he usually say this? Is it in response to a particular person most often? How about Mr. Burns' "Excellent" and/or Bart's "Ay caramba!"?  
